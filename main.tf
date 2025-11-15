@@ -68,6 +68,19 @@ resource "google_compute_firewall" "allow_app" {
   target_tags   = ["allow-app"]
 }
 
+# Create Service Account for Compute Engine instance
+resource "google_service_account" "compute_sa" {
+  account_id   = "flask-backend-sa"
+  display_name = "Flask Backend Service Account"
+}
+
+# Grant Artifact Registry read permissions to service account
+resource "google_project_iam_member" "artifact_registry_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.compute_sa.email}"
+}
+
 # Create Compute Engine Instance with Container
 resource "google_compute_instance" "app_instance" {
   name         = var.instance_name
@@ -76,7 +89,7 @@ resource "google_compute_instance" "app_instance" {
 
   boot_disk {
     initialize_params {
-      image = "cos-cloud/cos-stable"
+      image = "debian-cloud/debian-12"
       size  = 20
     }
   }
@@ -93,6 +106,11 @@ resource "google_compute_instance" "app_instance" {
 
   metadata = {
     enable-oslogin = "true"
+  }
+
+  service_account {
+    email  = google_service_account.compute_sa.email
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   metadata_startup_script = templatefile("${path.module}/startup-script.sh", {
