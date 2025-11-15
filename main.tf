@@ -98,6 +98,7 @@ resource "google_compute_instance" "app_instance" {
   metadata_startup_script = templatefile("${path.module}/startup-script.sh", {
     container_image = var.container_image
     app_port        = var.app_port
+    REGISTRY_HOST   = "${var.region}-docker.pkg.dev"
   })
 
   labels = {
