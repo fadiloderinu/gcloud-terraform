@@ -26,11 +26,9 @@ steps:
     waitFor: ['build']
 
   # Step 3: Update the Compute Engine instance with the new image
-  - name: 'gcr.io/cloud-builders/gke-deploy'
+  - name: 'gcr.io/cloud-builders/gcloud'
     id: 'update-instance'
     args:
-      - 'run'
-      - 'gcloud'
       - 'compute'
       - 'instances'
       - 'update-container'
@@ -38,7 +36,6 @@ steps:
       - '--container-image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
       - '--zone=${_ZONE}'
       - '--container-restart-policy=always'
-      - '--container-port=${_APP_PORT}:${_APP_PORT}'
     waitFor: ['push']
 
   # Step 4: Verify the deployment
