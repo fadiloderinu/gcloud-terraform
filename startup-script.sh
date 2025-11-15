@@ -27,11 +27,18 @@ usermod -aG docker root
 newgrp docker
 
 # Configure Docker authentication for Artifact Registry using gcloud
+echo "Configuring Docker authentication for ${REGISTRY_HOST}..."
 gcloud auth configure-docker ${REGISTRY_HOST}
 
 # Pull the latest image
 echo "Pulling Docker image: ${container_image}"
-docker pull ${container_image}
+if docker pull ${container_image}; then
+  echo "Successfully pulled image"
+else
+  echo "Failed to pull image, retrying..."
+  sleep 5
+  docker pull ${container_image}
+fi
 
 # Stop and remove old container if it exists
 echo "Stopping old container if it exists..."
@@ -45,6 +52,13 @@ docker run -d \
   -p ${app_port}:5000 \
   --restart=always \
   ${container_image}
+
+if [ $? -eq 0 ]; then
+  echo "Container started successfully"
+else
+  echo "Failed to start container"
+  exit 1
+fi
 
 # Verify container is running
 echo "Container status:"
