@@ -25,17 +25,26 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
     waitFor: ['build']
 
-  # Step 3: Update the Compute Engine instance with the new image
+  # Step 3: SSH into the instance and pull the new image
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'update-instance'
     args:
       - 'compute'
-      - 'instances'
-      - 'update-container'
+      - 'ssh'
       - '${_INSTANCE_NAME}'
-      - '--container-image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
       - '--zone=${_ZONE}'
-      - '--container-restart-policy=always'
+      - '--'
+      - 'bash'
+      - '-c'
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest
+        docker stop flask-backend || true
+        docker rm flask-backend || true
+        docker run -d \
+          --name flask-backend \
+          -p ${_APP_PORT}:5000 \
+          --restart=always \
+          ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest
     waitFor: ['push']
 
   # Step 4: Verify the deployment
