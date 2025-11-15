@@ -34,11 +34,12 @@ steps:
       - '${_INSTANCE_NAME}'
       - '--zone=${_ZONE}'
       - '--'
-      - 'sudo'
       - 'bash'
       - '-c'
-      - 'docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker stop flask-backend || true && docker rm flask-backend || true && docker run -d --name flask-backend -p ${_APP_PORT}:5000 --restart=always ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
+      - 'docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker stop flask-backend 2>/dev/null || true && docker rm flask-backend 2>/dev/null || true && docker run -d --name flask-backend -p ${_APP_PORT}:5000 --restart=always ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
     waitFor: ['push']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_ZONE}'
 
   # Step 4: Verify the deployment
   - name: 'gcr.io/cloud-builders/gcloud'
