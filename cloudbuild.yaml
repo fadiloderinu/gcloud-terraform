@@ -25,34 +25,6 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
     waitFor: ['build']
 
-  # Step 3: SSH into the instance and pull the new image
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'update-instance'
-    args:
-      - 'compute'
-      - 'ssh'
-      - '${_INSTANCE_NAME}'
-      - '--zone=${_ZONE}'
-      - '--'
-      - 'bash'
-      - '-c'
-      - 'docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker stop flask-backend 2>/dev/null || true && docker rm flask-backend 2>/dev/null || true && docker run -d --name flask-backend -p ${_APP_PORT}:5000 --restart=always ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
-    waitFor: ['push']
-    env:
-      - 'CLOUDSDK_COMPUTE_ZONE=${_ZONE}'
-
-  # Step 4: Verify the deployment
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'verify'
-    args:
-      - 'compute'
-      - 'instances'
-      - 'describe'
-      - '${_INSTANCE_NAME}'
-      - '--zone=${_ZONE}'
-      - '--format=value(networkInterfaces[0].accessConfigs[0].natIp)'
-    waitFor: ['update-instance']
-
 # Images to be pushed to the registry
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
@@ -63,9 +35,6 @@ substitutions:
   _REGION: 'us'
   _REGISTRY_NAME: 'docker-repo'
   _IMAGE_NAME: 'fadil-backend'
-  _INSTANCE_NAME: 'flask-backend-instance'
-  _ZONE: 'us-central1-a'
-  _APP_PORT: '5000'
 
 options:
   logging: CLOUD_LOGGING_ONLY
