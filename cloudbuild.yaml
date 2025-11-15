@@ -1,0 +1,74 @@
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '.'
+
+  # Step 2: Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
+    waitFor: ['build']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-commit'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+    waitFor: ['build']
+
+  # Step 3: Update the Compute Engine instance with the new image
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'update-instance'
+    args:
+      - 'run'
+      - 'gcloud'
+      - 'compute'
+      - 'instances'
+      - 'update-container'
+      - '${_INSTANCE_NAME}'
+      - '--container-image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
+      - '--zone=${_ZONE}'
+      - '--container-restart-policy=always'
+      - '--container-port=${_APP_PORT}:${_APP_PORT}'
+    waitFor: ['push']
+
+  # Step 4: Verify the deployment
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'verify'
+    args:
+      - 'compute'
+      - 'instances'
+      - 'describe'
+      - '${_INSTANCE_NAME}'
+      - '--zone=${_ZONE}'
+      - '--format=value(networkInterfaces[0].accessConfigs[0].natIp)'
+    waitFor: ['update-instance']
+
+# Images to be pushed to the registry
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+
+# Substitution variables (customize these)
+substitutions:
+  _REGION: 'us'
+  _REGISTRY_NAME: 'docker-repo'
+  _IMAGE_NAME: 'fadil-backend'
+  _INSTANCE_NAME: 'flask-backend-instance'
+  _ZONE: 'us-central1-a'
+  _APP_PORT: '5000'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+timeout: '1800s'
