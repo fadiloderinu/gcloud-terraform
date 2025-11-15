@@ -34,7 +34,7 @@ steps:
       - |
         gcloud compute ssh flask-backend-instance \
           --zone=us-central1-a \
-          --command="bash -c 'gcloud auth configure-docker ${_REGION}-docker.pkg.dev && docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker stop flask-backend || true && docker rm flask-backend || true && docker run -d -p 5000:5000 --name flask-backend --restart=always ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker ps'"
+          --command="sudo bash -c 'gcloud auth configure-docker ${_REGION}-docker.pkg.dev && docker pull ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker stop flask-backend || true && docker rm flask-backend || true && docker run -d -p 5000:5000 --name flask-backend --restart=always ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REGISTRY_NAME}/${_IMAGE_NAME}:latest && docker ps'"
     waitFor: ['push']
 
 # Images to be pushed to the registry

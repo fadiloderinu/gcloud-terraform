@@ -22,9 +22,11 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin g
 systemctl start docker
 systemctl enable docker
 
+# Ensure docker socket permissions are correct
+chmod 666 /var/run/docker.sock || true
+
 # Add root to docker group so we don't need sudo
-usermod -aG docker root
-newgrp docker
+usermod -aG docker root || true
 
 # Configure Docker authentication for Artifact Registry using gcloud
 echo "Configuring Docker authentication for ${REGISTRY_HOST}..."
